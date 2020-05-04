@@ -1,5 +1,5 @@
 package com.investing.model;
 
 public enum IssCode {
-    SECID, LAST
+    SECID, LAST, HIGH, LOW, BEGIN
 }

@@ -23,4 +23,9 @@ public class ShareController {
     public ResponseEntity getSharesList() {
         return ResponseEntity.ok().body(shareService.getShares());
     }
+
+    @GetMapping(value = "/monthly_values")
+    public ResponseEntity getMonthlyValues() {
+        return ResponseEntity.ok().body(shareService.getMonthlyValues());
+    }
 }
