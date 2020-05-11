@@ -1,6 +1,6 @@
 package com.investing.controller;
 
-import com.investing.service.IndexService;
+import com.investing.service.NewsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -9,17 +9,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @CrossOrigin(origins = "*")
-public class IndexController {
+public class NewsController {
 
-    private IndexService indexService;
+    private NewsService newsService;
 
     @Autowired
-    public void setIndexService(IndexService indexService) {
-        this.indexService = indexService;
+    public void setNewsService(NewsService newsService) {
+        this.newsService = newsService;
     }
 
-    @GetMapping(value = "/indexes")
-    public ResponseEntity getIndexes() {
-        return ResponseEntity.ok().body(indexService.getIndexes());
+    @GetMapping(value = "/news")
+    public ResponseEntity getNews() {
+        return ResponseEntity.ok().body(newsService.getNews());
     }
 }

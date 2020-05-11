@@ -1,9 +1,12 @@
 package com.investing.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShareIssData {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class IssData {
     private List<String> columns = new ArrayList<>();
     private List<List<String>> data = new ArrayList<>();
 

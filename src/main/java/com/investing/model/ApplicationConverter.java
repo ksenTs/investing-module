@@ -2,8 +2,8 @@ package com.investing.model;
 
 import java.util.Objects;
 
-public class ShareConverter {
-    private ShareConverter() {}
+public class ApplicationConverter {
+    private ApplicationConverter() {}
 
     public static ShareDto toShareDto(String code, String cost) {
         ShareDto dto = new ShareDto();

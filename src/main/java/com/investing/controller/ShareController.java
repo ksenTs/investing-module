@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
@@ -25,7 +26,7 @@ public class ShareController {
     }
 
     @GetMapping(value = "/monthly_values")
-    public ResponseEntity getMonthlyValues() {
-        return ResponseEntity.ok().body(shareService.getMonthlyValues());
+    public ResponseEntity getMonthlyValues(@RequestParam(value = "code") String code) {
+        return ResponseEntity.ok().body(shareService.getMonthlyValues(code));
     }
 }
