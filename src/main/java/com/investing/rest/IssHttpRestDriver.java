@@ -9,7 +9,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.function.Function;
 
 public class IssHttpRestDriver {
@@ -30,7 +29,7 @@ public class IssHttpRestDriver {
         IssResponseDto responseDto = new IssResponseDto();
         try (CloseableHttpResponse response = httpClient.execute(httpUriRequest)) {
             responseDto.setCode(response.getStatusLine().getStatusCode());
-            if (!Objects.isNull(response.getEntity())) {
+            if (response.getEntity() != null) {
                 responseDto.setData(EntityUtils.toString(response.getEntity()));
                 EntityUtils.consume(response.getEntity());
             }

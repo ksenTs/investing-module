@@ -24,9 +24,7 @@ public class IssHttpRestClient {
         return restDriver;
     }
 
-    public IssResponseDto get(String subUrl) throws IOException {
-        return restDriver.get(subUrl, this::checkResponse);
-    }
+    public IssResponseDto get(String subUrl) throws IOException { return restDriver.get(subUrl, this::checkResponse); }
 
     private IssResponseDto checkResponse(IssResponseDto responseDto) {
         if (HttpStatus.SC_OK != responseDto.getCode()) {
@@ -34,5 +32,4 @@ public class IssHttpRestClient {
         }
         return responseDto;
     }
-
 }

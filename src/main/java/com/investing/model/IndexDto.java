@@ -3,23 +3,33 @@ package com.investing.model;
 import org.springframework.util.StringUtils;
 
 public class IndexDto {
-    private String indexId;
+    private String code;
     private String shortName;
     private String name;
-    private Double currentValue;
 
-    public IndexDto(String indexId, String shortName, String name) {
-        this.indexId = indexId;
+    private Double value;
+    private Double delta;
+    private Double openValue;
+    private Double monthlyDelta;
+    private Double yearlyDelta;
+    private Double lowestValue;
+    private Double highestValue;
+    private Double capitalization;
+
+    public IndexDto() {}
+
+    public IndexDto(String code, String shortName, String name) {
+        this.code = code;
         this.shortName = shortName;
         this.name = name;
     }
 
-    public String getIndexId() {
-        return indexId;
+    public String getCode() {
+        return code;
     }
 
-    public void setIndexId(String indexId) {
-        this.indexId = indexId;
+    public void setCode(String code) {
+        this.code = code;
     }
 
     public String getShortName() {
@@ -38,13 +48,67 @@ public class IndexDto {
         this.name = name;
     }
 
-    public Double getCurrentValue() {
-        return currentValue;
+    public Double getValue() {
+        return value;
     }
 
-    public void setCurrentValue(String currentValue) {
-        if (!StringUtils.isEmpty(currentValue)) {
-            this.currentValue = Double.valueOf(currentValue);
-        }
+    public void setValue(Double value) {
+        this.value = value;
+    }
+
+    public Double getDelta() {
+        return delta;
+    }
+
+    public void setDelta(Double delta) {
+        this.delta = delta;
+    }
+
+    public Double getOpenValue() {
+        return openValue;
+    }
+
+    public void setOpenValue(Double openValue) {
+        this.openValue = openValue;
+    }
+
+    public Double getMonthlyDelta() {
+        return monthlyDelta;
+    }
+
+    public void setMonthlyDelta(Double monthlyDelta) {
+        this.monthlyDelta = monthlyDelta;
+    }
+
+    public Double getYearlyDelta() {
+        return yearlyDelta;
+    }
+
+    public void setYearlyDelta(Double yearlyDelta) {
+        this.yearlyDelta = yearlyDelta;
+    }
+
+    public Double getLowestValue() {
+        return lowestValue;
+    }
+
+    public void setLowestValue(Double lowestValue) {
+        this.lowestValue = lowestValue;
+    }
+
+    public Double getHighestValue() {
+        return highestValue;
+    }
+
+    public void setHighestValue(Double highestValue) {
+        this.highestValue = highestValue;
+    }
+
+    public Double getCapitalization() {
+        return capitalization;
+    }
+
+    public void setCapitalization(Double capitalization) {
+        this.capitalization = capitalization;
     }
 }

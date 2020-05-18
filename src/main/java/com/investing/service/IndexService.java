@@ -1,8 +1,5 @@
 package com.investing.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.investing.model.IndexDto;
 import com.investing.model.MarketDataCode;
@@ -13,6 +10,7 @@ import com.investing.model.IssData;
 import com.investing.rest.IssHttpRestClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,6 +34,13 @@ public class IndexService {
             .<MarketDataCode, Integer> builder()
             .put(MarketDataCode.CURRENTVALUE, 4)
             .put(MarketDataCode.SECID, 0)
+            .put(MarketDataCode.LASTCHANGE, 5)
+            .put(MarketDataCode.OPENVALUE, 3)
+            .put(MarketDataCode.HIGH, 22)
+            .put(MarketDataCode.LOW, 23)
+            .put(MarketDataCode.MONTHLY_DELTA, 11)
+            .put(MarketDataCode.YEARLY_DELTA, 12)
+            .put(MarketDataCode.CAPITAL, 20)
             .build();
 
     @Autowired
@@ -44,28 +49,52 @@ public class IndexService {
     }
 
     public List<IndexDto> getIndexes() {
-        List<IndexDto> indexes;
-        try {
-            IssResponseDto responseDto = httpRestClient.get("/engines/stock/markets/index/securities.json?iss.only=marketdata,securities");
-            IssResultDto<IssData> sharesData = deserializeData(responseDto);
-            indexes = sharesData.getSecurities().getData().stream()
-                    .map(l -> new IndexDto(
-                            l.get(SECURITIES_CODE.get(SecuritiesCode.SECID)),
-                            l.get(SECURITIES_CODE.get(SecuritiesCode.SHORTNAME)),
-                            l.get(SECURITIES_CODE.get(SecuritiesCode.NAME))
-                            ))
-                    .collect(Collectors.toList());
-            indexes.forEach(i -> sharesData.getMarketdata().getData().forEach(row -> {
-                if (row.get(MARKET_DATA_CODE.get(MarketDataCode.SECID)).equals(i.getIndexId())) {
-                    i.setCurrentValue(row.get(MARKET_DATA_CODE.get(MarketDataCode.CURRENTVALUE)));
-                }
-            }));
-
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
+        IssResultDto<IssData> indexesData = getData("/engines/stock/markets/index/securities.json?iss.only=marketdata,securities");
+        List<IndexDto> indexes = indexesData.getSecurities().getData().stream()
+                .map(this::toBaseIndexDto)
+                .collect(Collectors.toList());
+        indexes.forEach(indexDto -> indexesData.getMarketdata().getData().forEach(row -> {
+            String code = row.get(MARKET_DATA_CODE.get(MarketDataCode.SECID));
+            if (code.equals(indexDto.getCode())) {
+                fillExtendedProperties(row, indexDto);
+            }
+        }));
         return indexes;
     }
 
+    private IndexDto toBaseIndexDto(List<String> securitiesData) {
+        IndexDto dto = new IndexDto();
+        dto.setCode(securitiesData.get(SECURITIES_CODE.get(SecuritiesCode.SECID)));
+        dto.setName(securitiesData.get(SECURITIES_CODE.get(SecuritiesCode.NAME)));
+        dto.setShortName(securitiesData.get(SECURITIES_CODE.get(SecuritiesCode.SHORTNAME)));
+        return dto;
+    }
+
+    private void fillExtendedProperties(List<String> marketData, IndexDto dto) {
+        dto.setValue(toDouble(marketData.get(MARKET_DATA_CODE.get(MarketDataCode.CURRENTVALUE))));
+        dto.setDelta(toDouble(marketData.get(MARKET_DATA_CODE.get(MarketDataCode.LASTCHANGE))));
+        dto.setOpenValue(toDouble(marketData.get(MARKET_DATA_CODE.get(MarketDataCode.OPENVALUE))));
+        dto.setMonthlyDelta(toDouble(marketData.get(MARKET_DATA_CODE.get(MarketDataCode.MONTHLY_DELTA))));
+        dto.setYearlyDelta(toDouble(marketData.get(MARKET_DATA_CODE.get(MarketDataCode.YEARLY_DELTA))));
+        dto.setLowestValue(toDouble(marketData.get(MARKET_DATA_CODE.get(MarketDataCode.LOW))));
+        dto.setHighestValue(toDouble(marketData.get(MARKET_DATA_CODE.get(MarketDataCode.HIGH))));
+        dto.setCapitalization(toDouble(marketData.get(MARKET_DATA_CODE.get(MarketDataCode.CAPITAL))));
+    }
+
+    private Double toDouble(String value) {
+        if (!StringUtils.isEmpty(value)) {
+            return Double.valueOf(value);
+        }
+        return null;
+    }
+
+    private IssResultDto<IssData> getData(String url) {
+        try {
+            IssResponseDto responseDto = httpRestClient.get(url);
+            return deserializeData(responseDto);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
 }
