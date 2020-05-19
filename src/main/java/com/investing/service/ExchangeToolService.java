@@ -66,6 +66,7 @@ public class ExchangeToolService {
             .put(MarketDataCode.LAST, 12)
             .put(MarketDataCode.LASTCHANGE, 13)
             .put(MarketDataCode.VALUE, 16)
+            .put(MarketDataCode.BID, 2)
             .build();
 
     @Autowired
@@ -74,32 +75,37 @@ public class ExchangeToolService {
     }
 
     public List<ExchangeTool> getIndexes() {
-        return getExchangeTools(ExchangeToolType.INDEX);
+        IssResultDto<IssData> issData = getData("/engines/stock/markets/index/securities.json?iss.only=marketdata,securities");
+        List<ExchangeTool> indexes = issData.getSecurities().getData().stream()
+                .map(this::toIndex)
+                .collect(Collectors.toList());
+        indexes.forEach(indexDto -> issData.getMarketdata().getData().forEach(row -> {
+            String code = row.get(INDEXES_MARKET_DATA.get(MarketDataCode.SECID));
+            if (code.equals(indexDto.getCode())) {
+                fillIndexMarketProperties(row, indexDto);
+            }
+        }));
+        return indexes;
     }
 
     public List<ExchangeTool> getShares() {
-        return getExchangeTools(ExchangeToolType.SHARE);
-    }
-
-    private List<ExchangeTool> getExchangeTools(ExchangeToolType toolType) {
-        IssResultDto<IssData> issData = getData("/engines/stock/markets/" + toolType.getCode() + "/securities.json?iss.only=marketdata,securities");
-        List<ExchangeTool> tools = issData.getSecurities().getData().stream()
-                .map(this::toBaseExchangeTool)
+        IssResultDto<IssData> issData = getData("/engines/stock/markets/shares/securities.json?iss.only=marketdata,securities");
+        List<ExchangeTool> shares = issData.getSecurities().getData().stream()
+                .map(this::toShare)
                 .collect(Collectors.toList());
-        ImmutableMap<MarketDataCode, Integer> codeMap = ExchangeToolType.INDEX.equals(toolType) ? INDEXES_MARKET_DATA : SHARES_MARKET_DATA;
-        tools.forEach(indexDto -> issData.getMarketdata().getData().forEach(row -> {
-            String code = row.get(codeMap.get(MarketDataCode.SECID));
+        shares.forEach(indexDto -> issData.getMarketdata().getData().forEach(row -> {
+            String code = row.get(SHARES_MARKET_DATA.get(MarketDataCode.SECID));
             if (code.equals(indexDto.getCode())) {
-                fillMarketProperties(row, indexDto);
+                fillShareMarketProperties(row, indexDto);
             }
         }));
-        return tools;
+        return shares;
     }
 
     public ExchangeToolDetails getIndexDetails(String code) {
         IssResultDto<IssData> indexesData = getData("/engines/stock/markets/index/securities/" + code + ".json?iss.only=marketdata,securities");
-        ExchangeTool baseDto = toBaseExchangeTool(indexesData.getSecurities().getData().get(0));
-        fillMarketProperties(indexesData.getMarketdata().getData().get(0), baseDto);
+        ExchangeTool baseDto = toIndex(indexesData.getSecurities().getData().get(0));
+        fillIndexMarketProperties(indexesData.getMarketdata().getData().get(0), baseDto);
         return toExchangeToolDetails(indexesData.getMarketdata().getData().get(0), baseDto);
     }
 
@@ -124,7 +130,7 @@ public class ExchangeToolService {
         return periodValues;
     }
 
-    private ExchangeTool toBaseExchangeTool(List<String> securitiesData) {
+    private ExchangeTool toIndex(List<String> securitiesData) {
         ExchangeTool dto = new ExchangeToolDetails();
         dto.setCode(securitiesData.get(INDEXES_SECURITIES.get(SecuritiesCode.SECID)));
         dto.setName(securitiesData.get(INDEXES_SECURITIES.get(SecuritiesCode.NAME)));
@@ -132,9 +138,20 @@ public class ExchangeToolService {
         return dto;
     }
 
-    private void fillMarketProperties(List<String> marketData, ExchangeTool dto) {
+    private ExchangeTool toShare(List<String> securitiesData) {
+        ExchangeTool dto = new ExchangeToolDetails();
+        dto.setCode(securitiesData.get(SHARES_SECURITIES.get(SecuritiesCode.SECID)));
+        dto.setShortName(securitiesData.get(SHARES_SECURITIES.get(SecuritiesCode.SHORTNAME)));
+        return dto;
+    }
+
+    private void fillIndexMarketProperties(List<String> marketData, ExchangeTool dto) {
         dto.setValue(toDouble(marketData.get(INDEXES_MARKET_DATA.get(MarketDataCode.CURRENTVALUE))));
         dto.setDelta(toDouble(marketData.get(INDEXES_MARKET_DATA.get(MarketDataCode.LASTCHANGE))));
+    }
+
+    private void fillShareMarketProperties(List<String> marketData, ExchangeTool dto) {
+        dto.setValue(toDouble(marketData.get(SHARES_MARKET_DATA.get(MarketDataCode.LAST))));
     }
 
     private ExchangeToolDetails toExchangeToolDetails(List<String> marketData, ExchangeTool dto) {
