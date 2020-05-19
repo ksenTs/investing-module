@@ -1,10 +1,9 @@
 package com.investing.model;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MonthlyValues {
+public class PeriodValues {
     private List<Double> high = new ArrayList<>();
     private List<Double> low = new ArrayList<>();
     private List<String> dates = new ArrayList<>();

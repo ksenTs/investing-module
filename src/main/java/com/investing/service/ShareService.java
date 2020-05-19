@@ -3,11 +3,12 @@ package com.investing.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.investing.model.ExchangeTool;
 import com.investing.model.IssCandles;
 import com.investing.model.MarketDataCode;
 import com.investing.model.IssResponseDto;
 import com.investing.model.IssResultDto;
-import com.investing.model.MonthlyValues;
+import com.investing.model.PeriodValues;
 import com.investing.model.ShareDto;
 import com.investing.model.IssData;
 import com.investing.rest.IssHttpRestClient;
@@ -19,8 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.investing.model.ApplicationConverter.toShareDto;
 import static com.investing.rest.Deserializer.deserializeData;
+import static com.investing.rest.RequestBuilder.getPeriodAsString;
 
 @Service
 public class ShareService {
@@ -41,25 +42,27 @@ public class ShareService {
         this.httpRestClient = httpRestClient;
     }
 
-    public List<ShareDto> getShares() {
-        List<ShareDto> shares;
-        try {
-            IssResponseDto responseDto = httpRestClient.get("/engines/stock/markets/shares/boards/tqbr/securities.json?iss.only=marketdata&iss.meta=off");
-            IssResultDto<IssData> sharesData = deserializeData(responseDto);
-            shares = sharesData.getMarketdata().getData().stream()
-                    .map(l -> toShareDto(l.get(CODE_POSITION_MAP.get(MarketDataCode.SECID)), l.get(CODE_POSITION_MAP.get(MarketDataCode.LAST))))
-                    .collect(Collectors.toList());
+//    public List<ShareDto> getShares() {
+////        List<ShareDto> shares;
+////        try {
+////            IssResponseDto responseDto = httpRestClient.get("/engines/stock/markets/shares/boards/tqbr/securities.json?iss.only=marketdata&iss.meta=off");
+////            IssResultDto<IssData> sharesData = deserializeData(responseDto);
+////            shares = sharesData.getMarketdata().getData().stream()
+////                    .map(l -> toShareDto(l.get(CODE_POSITION_MAP.get(MarketDataCode.SECID)), l.get(CODE_POSITION_MAP.get(MarketDataCode.LAST))))
+////                    .collect(Collectors.toList());
+////
+////        } catch (IOException e) {
+////            throw new IllegalStateException(e);
+////        }
+////        return shares;
+////    }
 
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-        return shares;
-    }
 
-    public MonthlyValues getMonthlyValues(String code) {
-        MonthlyValues monthlyValues = new MonthlyValues();
+    public PeriodValues getMonthlyValues(String code, String period) {
+        PeriodValues monthlyValues = new PeriodValues();
         try {
-            IssResponseDto responseDto = httpRestClient.get("/engines/stock/markets/shares/boards/TQBR/securities/" + code + "/candles.json?from=2020-04-01&till=2020-05-02&interval=24&iss.meta=off");
+            String check = getPeriodAsString(period);
+            IssResponseDto responseDto = httpRestClient.get("/engines/stock/markets/shares/boards/TQBR/securities/" + code + "/candles.json?" + check);
             ObjectMapper mapper = new ObjectMapper();
             IssCandles<IssData> sharesData = mapper.readValue(responseDto.getData(), new TypeReference<IssCandles<IssData>>() {
             });
@@ -80,6 +83,15 @@ public class ShareService {
             throw new IllegalStateException(e);
         }
         return monthlyValues;
+    }
+
+    private IssResultDto<IssData> getData(String url) {
+        try {
+            IssResponseDto responseDto = httpRestClient.get(url);
+            return deserializeData(responseDto);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
 }
