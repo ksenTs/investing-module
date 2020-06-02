@@ -3,6 +3,7 @@ package com.investing.service;
 import com.investing.model.IssData;
 import com.investing.model.IssResponseDto;
 import com.investing.model.IssResultDto;
+import com.investing.model.NewsDetails;
 import com.investing.model.SiteNews;
 import com.investing.rest.IssHttpRestClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,5 +41,9 @@ public class NewsService {
         catch (IOException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    public NewsDetails getNewsDetails(String code) {
+        return new NewsDetails();
     }
 }

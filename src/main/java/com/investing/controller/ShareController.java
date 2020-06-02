@@ -2,6 +2,7 @@ package com.investing.controller;
 
 import com.investing.model.ExchangeToolType;
 import com.investing.service.ExchangeToolService;
+import com.investing.service.ShareService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,21 +19,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "shares", produces = MediaType.APPLICATION_JSON_VALUE)
 public class ShareController {
 
+    private ShareService shareService;
     private ExchangeToolService exchangeToolService;
-
-    @Autowired
-    public void setExchangeToolService(ExchangeToolService exchangeToolService) {
-        this.exchangeToolService = exchangeToolService;
-    }
 
     @GetMapping(value = "/list")
     public ResponseEntity getShares() {
-        return ResponseEntity.ok().body(exchangeToolService.getShares());
+        return ResponseEntity.ok().body(shareService.getShares());
     }
 
     @GetMapping(value = "/{code}")
     public ResponseEntity getShare(@PathVariable("code") String code) {
-        return ResponseEntity.ok().body(exchangeToolService.getShareDetails(code));
+        return ResponseEntity.ok().body(shareService.getShareDetails(code));
     }
 
     @GetMapping(value = "period-data/{code}")
@@ -42,6 +39,16 @@ public class ShareController {
 
     @GetMapping(value = "growth-leaders")
     public ResponseEntity getGrowthLeaders() {
-        return ResponseEntity.ok().body(exchangeToolService.getSharesGrowthLeadersAmongShares());
+        return ResponseEntity.ok().body(shareService.getSharesGrowthLeaders());
+    }
+
+    @Autowired
+    public void setShareService(ShareService shareService) {
+        this.shareService = shareService;
+    }
+
+    @Autowired
+    public void setExchangeToolService(ExchangeToolService exchangeToolService) {
+        this.exchangeToolService = exchangeToolService;
     }
 }

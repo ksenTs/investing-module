@@ -6,6 +6,14 @@ public class RequestBuilder {
 
     private RequestBuilder() {}
 
+    public static String getIndexesListUrl() {
+        return "/engines/stock/markets/index/securities.json?iss.only=marketdata,securities";
+    }
+
+    public static String getIndexDetailsUrl(String code) {
+        return "/engines/stock/markets/index/securities/" + code + ".json?iss.only=marketdata,securities";
+    }
+
     public static String getPeriodAsString(String period) {
         switch (period) {
             case "MONTHLY": {

@@ -1,97 +1,95 @@
 package com.investing.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.investing.model.ApplicationConverter;
 import com.investing.model.ExchangeTool;
-import com.investing.model.IssCandles;
-import com.investing.model.MarketDataCode;
-import com.investing.model.IssResponseDto;
-import com.investing.model.IssResultDto;
-import com.investing.model.PeriodValues;
-import com.investing.model.ShareDto;
+import com.investing.model.ExchangeToolDetails;
 import com.investing.model.IssData;
-import com.investing.rest.IssHttpRestClient;
+import com.investing.model.IssResultDto;
+import com.investing.model.MarketDataCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.investing.rest.Deserializer.deserializeData;
-import static com.investing.rest.RequestBuilder.getPeriodAsString;
+import static com.investing.model.ApplicationConverter.toDouble;
+import static com.investing.model.ApplicationConverter.toShare;
+
 
 @Service
 public class ShareService {
 
-    private IssHttpRestClient httpRestClient;
-
-    private static final ImmutableMap<MarketDataCode, Integer> CODE_POSITION_MAP = ImmutableMap
-            .<MarketDataCode, Integer> builder()
-            .put(MarketDataCode.SECID, 0)
-            .put(MarketDataCode.LAST, 12)
-            .put(MarketDataCode.HIGH, 2)
-            .put(MarketDataCode.LOW, 3)
-            .put(MarketDataCode.BEGIN, 6)
-            .build();
+    private static final String SHARES_LIST_URL = "/engines/stock/markets/shares/boards/TQBR/securities.json?iss.only=marketdata,securities";
+    private static final String SHARES_DETAILS_URL = "/engines/stock/markets/shares/boards/TQBR/securities.json?iss.only=marketdata,securities";
+    private ExchangeToolService exchangeToolService;
 
     @Autowired
-    public void setHttpRestClient(IssHttpRestClient httpRestClient) {
-        this.httpRestClient = httpRestClient;
+    public void setExchangeToolService(ExchangeToolService exchangeToolService) {
+        this.exchangeToolService = exchangeToolService;
     }
 
-//    public List<ShareDto> getShares() {
-////        List<ShareDto> shares;
-////        try {
-////            IssResponseDto responseDto = httpRestClient.get("/engines/stock/markets/shares/boards/tqbr/securities.json?iss.only=marketdata&iss.meta=off");
-////            IssResultDto<IssData> sharesData = deserializeData(responseDto);
-////            shares = sharesData.getMarketdata().getData().stream()
-////                    .map(l -> toShareDto(l.get(CODE_POSITION_MAP.get(MarketDataCode.SECID)), l.get(CODE_POSITION_MAP.get(MarketDataCode.LAST))))
-////                    .collect(Collectors.toList());
-////
-////        } catch (IOException e) {
-////            throw new IllegalStateException(e);
-////        }
-////        return shares;
-////    }
+    private static final ImmutableMap<MarketDataCode, Integer> SHARES_MARKET_DATA = ImmutableMap
+            .<MarketDataCode, Integer> builder()
+            .put(MarketDataCode.SECID, 0)
+            .put(MarketDataCode.OPEN, 9)
+            .put(MarketDataCode.LOW, 10)
+            .put(MarketDataCode.HIGH, 11)
+            .put(MarketDataCode.LAST, 12)
+            .put(MarketDataCode.LASTCHANGE, 13)
+            .put(MarketDataCode.VALUE, 12)
+            .put(MarketDataCode.BID, 2)
+            .put(MarketDataCode.DELTA, 41)
+            .build();
 
-
-    public PeriodValues getMonthlyValues(String code, String period) {
-        PeriodValues monthlyValues = new PeriodValues();
-        try {
-            String check = getPeriodAsString(period);
-            IssResponseDto responseDto = httpRestClient.get("/engines/stock/markets/shares/boards/TQBR/securities/" + code + "/candles.json?" + check);
-            ObjectMapper mapper = new ObjectMapper();
-            IssCandles<IssData> sharesData = mapper.readValue(responseDto.getData(), new TypeReference<IssCandles<IssData>>() {
-            });
-            List<Double> low = new ArrayList<>();
-            List<Double> high = new ArrayList<>();
-            List<String> dates = new ArrayList<>();
-
-            sharesData.getCandles().getData().forEach(l -> {
-                low.add(Double.valueOf(l.get(CODE_POSITION_MAP.get(MarketDataCode.LOW))));
-                high.add(Double.valueOf(l.get(CODE_POSITION_MAP.get(MarketDataCode.HIGH))));
-                dates.add(l.get(CODE_POSITION_MAP.get(MarketDataCode.BEGIN)));
-            });
-            monthlyValues.setLow(low);
-            monthlyValues.setHigh(high);
-            monthlyValues.setDates(dates);
-
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-        return monthlyValues;
+    public List<ExchangeTool> getShares() {
+        IssResultDto<IssData> issData = exchangeToolService.getData(SHARES_LIST_URL);
+        List<ExchangeTool> shares = issData.getSecurities().getData().stream()
+                .map(ApplicationConverter::toShare)
+                .collect(Collectors.toList());
+        shares.forEach(indexDto -> issData.getMarketdata().getData().forEach(row -> {
+            String code = row.get(SHARES_MARKET_DATA.get(MarketDataCode.SECID));
+            if (code.equals(indexDto.getCode())) {
+                fillShareMarketProperties(row, indexDto);
+            }
+        }));
+        return shares;
     }
 
-    private IssResultDto<IssData> getData(String url) {
-        try {
-            IssResponseDto responseDto = httpRestClient.get(url);
-            return deserializeData(responseDto);
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
+    public ExchangeToolDetails getShareDetails(String code) {
+        IssResultDto<IssData> sharesData = exchangeToolService.getData("/engines/stock/markets/shares/securities/" + code + ".json?iss.only=marketdata,securities");
+        ExchangeTool baseDto = toShare(sharesData.getSecurities().getData().get(0));
+        fillShareMarketProperties(sharesData.getMarketdata().getData().get(0), baseDto);
+        return toExchangeToolDetails(sharesData.getMarketdata().getData().get(0), baseDto);
     }
 
+    private ExchangeToolDetails toExchangeToolDetails(List<String> marketData, ExchangeTool dto) {
+        ExchangeToolDetails detailsDto = (ExchangeToolDetails) dto;
+        detailsDto.setOpenValue(toDouble(marketData.get(SHARES_MARKET_DATA.get(MarketDataCode.OPENVALUE))));
+        detailsDto.setMonthlyDelta(toDouble(marketData.get(SHARES_MARKET_DATA.get(MarketDataCode.MONTHLY_DELTA))));
+        detailsDto.setYearlyDelta(toDouble(marketData.get(SHARES_MARKET_DATA.get(MarketDataCode.YEARLY_DELTA))));
+        detailsDto.setLowestValue(toDouble(marketData.get(SHARES_MARKET_DATA.get(MarketDataCode.LOW))));
+        detailsDto.setHighestValue(toDouble(marketData.get(SHARES_MARKET_DATA.get(MarketDataCode.HIGH))));
+        return detailsDto;
+    }
+
+    public List<ExchangeTool> getSharesGrowthLeaders() {
+        return getShares().stream()
+                .filter(t -> t.getDelta() != null)
+                .sorted(Comparator.comparing(ExchangeTool::getDelta))
+                .collect(Collectors.toList());
+    }
+
+    public List<ExchangeTool> getSharesFallLeaders() {
+        return getShares().stream()
+                .filter(t -> t.getDelta() != null)
+                .sorted(Comparator.comparing(ExchangeTool::getDelta).reversed())
+                .collect(Collectors.toList());
+    }
+
+    private void fillShareMarketProperties(List<String> marketData, ExchangeTool dto) {
+        dto.setValue(toDouble(marketData.get(SHARES_MARKET_DATA.get(MarketDataCode.VALUE))));
+        dto.setDelta(toDouble(marketData.get(SHARES_MARKET_DATA.get(MarketDataCode.DELTA))));
+    }
 }

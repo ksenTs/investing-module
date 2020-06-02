@@ -17,19 +17,23 @@ public class IssHttpRestClient {
     @PostConstruct
     public void init() {
         CloseableHttpClient httpClient = HttpClients.custom().build();
-        restDriver = new IssHttpRestDriver(URL, httpClient);
+        setRestDriver(new IssHttpRestDriver(URL, httpClient));
     }
 
     public IssHttpRestDriver getRestDriver() {
         return restDriver;
     }
 
-    public IssResponseDto get(String subUrl) throws IOException { return restDriver.get(subUrl, this::checkResponse); }
+    public IssResponseDto get(String subUrl) throws IOException { return getRestDriver().get(subUrl, this::checkResponse); }
 
     private IssResponseDto checkResponse(IssResponseDto responseDto) {
         if (HttpStatus.SC_OK != responseDto.getCode()) {
             throw new IllegalStateException("Request to ISS failed");
         }
         return responseDto;
+    }
+
+    public void setRestDriver(IssHttpRestDriver restDriver) {
+        this.restDriver = restDriver;
     }
 }
